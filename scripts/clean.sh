@@ -4,6 +4,9 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,6 +17,31 @@ NC='\033[0m'
 print_status() { echo -e "${BLUE}[*]${NC} $1"; }
 print_success() { echo -e "${GREEN}[+]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[!]${NC} $1"; }
+
+# Detect container runtime
+detect_runtime() {
+    if [ -f "$ROOT_DIR/.container-runtime" ]; then
+        RUNTIME=$(cat "$ROOT_DIR/.container-runtime")
+        if command -v "$RUNTIME" &> /dev/null; then
+            echo "$RUNTIME"
+            return
+        fi
+    fi
+    if command -v podman &> /dev/null; then
+        echo "podman"
+    elif command -v docker &> /dev/null; then
+        echo "docker"
+    else
+        echo ""
+    fi
+}
+
+RUNTIME=$(detect_runtime)
+
+if [ -z "$RUNTIME" ]; then
+    echo "No container runtime found"
+    exit 1
+fi
 
 # Container names
 MONGO_CONTAINER="gng-mongodb"
@@ -35,21 +63,21 @@ fi
 
 # Stop and remove MongoDB
 print_status "Removing MongoDB container..."
-docker stop "$MONGO_CONTAINER" 2>/dev/null || true
-docker rm "$MONGO_CONTAINER" 2>/dev/null || true
+$RUNTIME stop "$MONGO_CONTAINER" 2>/dev/null || true
+$RUNTIME rm "$MONGO_CONTAINER" 2>/dev/null || true
 print_success "MongoDB container removed"
 
 # Stop and remove MinIO
 print_status "Removing MinIO container..."
-docker stop "$MINIO_CONTAINER" 2>/dev/null || true
-docker rm "$MINIO_CONTAINER" 2>/dev/null || true
+$RUNTIME stop "$MINIO_CONTAINER" 2>/dev/null || true
+$RUNTIME rm "$MINIO_CONTAINER" 2>/dev/null || true
 print_success "MinIO container removed"
 
 # Remove volumes if requested
 if [ "$REMOVE_VOLUMES" == true ]; then
     print_status "Removing data volumes..."
-    docker volume rm gng-mongodb-data 2>/dev/null || true
-    docker volume rm gng-minio-data 2>/dev/null || true
+    $RUNTIME volume rm gng-mongodb-data 2>/dev/null || true
+    $RUNTIME volume rm gng-minio-data 2>/dev/null || true
     print_success "Data volumes removed"
 fi
 

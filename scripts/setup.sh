@@ -25,6 +25,49 @@ print_success() { echo -e "${GREEN}[+]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[!]${NC} $1"; }
 print_error() { echo -e "${RED}[-]${NC} $1"; }
 
+# Install Podman rootless (no sudo required)
+install_podman_rootless() {
+    local PODMAN_VERSION="5.3.1"
+    local INSTALL_DIR="$HOME/.local"
+    local BIN_DIR="$INSTALL_DIR/bin"
+    local PODMAN_URL="https://github.com/containers/podman/releases/download/v${PODMAN_VERSION}/podman-remote-static-linux_amd64.tar.gz"
+
+    mkdir -p "$BIN_DIR"
+
+    print_status "Downloading Podman ${PODMAN_VERSION}..."
+
+    # Download and extract podman-remote (static binary, works anywhere)
+    if curl -fsSL "$PODMAN_URL" | tar -xz -C "$BIN_DIR" --strip-components=1 2>/dev/null; then
+        # Rename to podman for convenience
+        if [ -f "$BIN_DIR/podman-remote-static-linux_amd64" ]; then
+            mv "$BIN_DIR/podman-remote-static-linux_amd64" "$BIN_DIR/podman"
+        fi
+        chmod +x "$BIN_DIR/podman" 2>/dev/null || true
+
+        # Add to PATH if not already there
+        if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+            export PATH="$BIN_DIR:$PATH"
+            echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$HOME/.bashrc" 2>/dev/null || true
+        fi
+
+        if command -v podman &> /dev/null; then
+            print_success "Podman installed to $BIN_DIR/podman"
+            return 0
+        fi
+    fi
+
+    # Alternative: try pip install podman if available
+    if command -v pip3 &> /dev/null; then
+        print_status "Trying pip install podman..."
+        if pip3 install --user podman 2>/dev/null; then
+            print_success "Podman installed via pip"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 echo ""
 echo "=========================================="
 echo "  Griot & Grits Development Setup"
@@ -44,17 +87,31 @@ else
     MISSING_DEPS+=("git")
 fi
 
-# Check Docker
-if command -v docker &> /dev/null; then
+# Check for container runtime (Podman preferred, Docker as fallback)
+CONTAINER_RUNTIME=""
+if command -v podman &> /dev/null; then
+    print_success "Podman: $(podman --version | cut -d' ' -f3)"
+    CONTAINER_RUNTIME="podman"
+elif command -v docker &> /dev/null; then
     if docker info &> /dev/null; then
         print_success "Docker: $(docker --version | cut -d' ' -f3 | tr -d ',')"
+        CONTAINER_RUNTIME="docker"
     else
         print_warning "Docker installed but daemon not running"
-        MISSING_DEPS+=("docker-daemon")
     fi
-else
-    print_error "Docker: not found"
-    MISSING_DEPS+=("docker")
+fi
+
+if [ -z "$CONTAINER_RUNTIME" ]; then
+    print_warning "No container runtime found (Podman or Docker)"
+    print_status "Attempting to install Podman (rootless)..."
+
+    # Try to install Podman without sudo
+    if install_podman_rootless; then
+        CONTAINER_RUNTIME="podman"
+    else
+        print_error "Could not install container runtime"
+        MISSING_DEPS+=("podman-or-docker")
+    fi
 fi
 
 # Check Node.js
@@ -102,7 +159,7 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
     echo ""
     echo "Please install missing dependencies:"
     echo "  - Git: https://git-scm.com/downloads"
-    echo "  - Docker: https://docs.docker.com/get-docker/"
+    echo "  - Podman or Docker (Podman preferred for rootless)"
     echo "  - Node.js: https://nodejs.org/ (v18+ required)"
     echo "  - Python: https://python.org (3.10+ required)"
     echo "  - uv (recommended): curl -LsSf https://astral.sh/uv/install.sh | sh"
@@ -111,6 +168,11 @@ fi
 
 echo ""
 print_status "All prerequisites found!"
+echo ""
+
+# Save container runtime choice for other scripts
+echo "$CONTAINER_RUNTIME" > "$ROOT_DIR/.container-runtime"
+print_status "Using container runtime: $CONTAINER_RUNTIME"
 echo ""
 
 # Clone or update project repositories

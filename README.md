@@ -7,10 +7,11 @@ Development and infrastructure scripts for the Griot & Grits project - AI-powere
 ### Prerequisites
 
 - Git
-- Docker (running)
 - Node.js 18+
 - Python 3.10+
 - `uv` (recommended) or `pip`
+
+> **Note:** Podman or Docker will be auto-installed if not present. Works in rootless environments (OpenShift AI workbenches).
 
 ### One-Time Setup
 
@@ -118,13 +119,13 @@ Full templates in `env-templates/`.
 
 ## Troubleshooting
 
-### Docker not running
+### No container runtime found
 ```bash
-# Linux
-sudo systemctl start docker
+# Re-run setup to auto-install Podman
+./scripts/setup.sh
 
-# macOS
-open -a Docker
+# Or check what's available
+which podman docker
 ```
 
 ### Port already in use
@@ -139,8 +140,11 @@ kill -9 <PID>
 
 ### MongoDB/MinIO won't start
 ```bash
-# Check for existing containers
-docker ps -a | grep gng
+# Check status
+./scripts/status.sh
+
+# Check for existing containers (use podman or docker)
+podman ps -a | grep gng
 
 # Remove and restart
 ./scripts/clean.sh
@@ -150,10 +154,10 @@ docker ps -a | grep gng
 ### Backend can't connect to MongoDB
 ```bash
 # Check MongoDB is running
-docker logs gng-mongodb
+podman logs gng-mongodb  # or: docker logs gng-mongodb
 
 # Verify connection string in .env
-cat ~/griot-and-grits-backend/.env | grep DB_URI
+grep DB_URI ~/griot-and-grits-backend/.env
 ```
 
 ## Contributing

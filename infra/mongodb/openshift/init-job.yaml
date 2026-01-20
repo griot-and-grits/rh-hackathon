@@ -9,7 +9,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: init
-        image: mongo:7.0.14
+        image: image-registry.openshift-image-registry.svc:5000/openshift/mongodb:7.0
         command: ["/bin/bash", "-c"]
         args:
         - |
@@ -41,7 +41,7 @@ spec:
               }
             });
 
-            print("✓ Sample data created successfully");
+            print("Sample data created successfully");
           EOF
 
           echo "Done."

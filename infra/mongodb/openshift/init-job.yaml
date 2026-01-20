@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-mongodb
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: init
+        image: registry.redhat.io/rhel9/mongodb-70:latest
+        command: ["/bin/bash", "-c"]
+        env:
+        - name: MONGODB_USER
+          value: "admin"
+        - name: MONGODB_PASSWORD
+          value: "gngdevpass12"
+        - name: MONGODB_DATABASE
+          value: "gngdb"
+        args:
+        - |
+          echo "Waiting for MongoDB to be ready..."
+          until mongosh --host mongodb --username admin --password gngdevpass12 --authenticationDatabase admin --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+            echo "MongoDB is unavailable - sleeping"
+            sleep 2
+          done
+
+          echo "MongoDB is ready - creating collections and sample data..."
+
+          mongosh --host mongodb --username admin --password gngdevpass12 --authenticationDatabase admin gngdb <<EOF
+            // Create collections collection with sample data
+            db.collections.insertOne({
+              name: "Demo Collection",
+              description: "Sample collection for hackathon",
+              created_at: new Date(),
+              owner: "admin_demo"
+            });
+
+            // Create artifacts collection
+            db.artifacts.insertOne({
+              title: "Sample Artifact",
+              collection_id: "demo",
+              created_at: new Date(),
+              metadata: {
+                type: "demo",
+                status: "active"
+              }
+            });
+
+            print("✓ Sample data created successfully");
+          EOF
+
+          echo "Done."

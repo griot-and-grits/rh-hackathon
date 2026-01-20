@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-db
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: init
+        image: registry.redhat.io/rhel9/postgresql-15
+        command: ["/bin/bash", "-c"]
+        env:
+        - name: PGPASSWORD
+          value: "hackathon123"
+        # Tell psql to trust the self-signed cert
+        - name: PGSSLMODE
+          value: "require"
+        args:
+        - |
+          echo "Waiting for postgres..."
+          until psql -h postgres -U hackathon -d hackathon_db -c '\q'; do
+            echo "Postgres is unavailable - sleeping"
+            sleep 2
+          done
+          
+          echo "Postgres is up - creating table..."
+          
+          psql -h postgres -U hackathon -d hackathon_db <<EOF
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50),
+                role VARCHAR(50)
+            );
+            INSERT INTO users (username, role) 
+            SELECT 'admin_demo', 'organizer'
+            WHERE NOT EXISTS (SELECT 1 FROM users);
+          EOF
+          echo "Done."

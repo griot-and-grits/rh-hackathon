@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-minio
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: init
+        image: quay.io/minio/mc:latest
+        command: ["/bin/sh", "-c"]
+        env:
+        - name: MINIO_ROOT_USER
+          value: "minioadmin"
+        - name: MINIO_ROOT_PASSWORD
+          value: "minioadmin"
+        args:
+        - |
+          echo "Waiting for MinIO to be ready..."
+          until mc alias set myminio http://minio:9000 minioadmin minioadmin > /dev/null 2>&1; do
+            echo "MinIO is unavailable - sleeping"
+            sleep 2
+          done
+
+          echo "MinIO is ready - creating bucket..."
+
+          # Create artifacts bucket
+          mc mb myminio/artifacts --ignore-existing
+
+          # Set public download policy (optional - adjust as needed)
+          # mc anonymous set download myminio/artifacts
+
+          echo "✓ Bucket 'artifacts' created successfully"
+          echo "Done."

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: registry.redhat.io/rhel9/mongodb-70:latest
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        env:
+        - name: MONGODB_USER
+          value: "admin"
+        - name: MONGODB_PASSWORD
+          value: "gngdevpass12"
+        - name: MONGODB_DATABASE
+          value: "gngdb"
+        - name: MONGODB_ADMIN_PASSWORD
+          value: "gngdevpass12"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: mongodb-data
+          mountPath: /var/lib/mongodb/data
+      volumes:
+      - name: mongodb-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  labels:
+    app: mongodb
+spec:
+  ports:
+  - port: 27017
+    targetPort: 27017
+    protocol: TCP
+    name: mongodb
+  selector:
+    app: mongodb
+  type: ClusterIP

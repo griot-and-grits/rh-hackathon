@@ -33,6 +33,10 @@ spec:
         env:
         - name: NEXT_PUBLIC_API_URL
           value: "https://backend-NAMESPACE.CLUSTER_DOMAIN"
+        - name: NEXTAUTH_URL
+          value: "https://frontend-NAMESPACE.CLUSTER_DOMAIN"
+        - name: NEXT_PUBLIC_BASE_URL
+          value: "https://frontend-NAMESPACE.CLUSTER_DOMAIN"
         resources:
           requests:
             memory: "1Gi"

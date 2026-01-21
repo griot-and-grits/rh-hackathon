@@ -177,14 +177,14 @@ echo -e "${BOLD}Namespace:${NC} ${CYAN}$NAMESPACE${NC}"
 
 if oc get namespace "$NAMESPACE" &> /dev/null; then
     print_success "Namespace already exists"
-    oc project "$NAMESPACE" > /dev/null 2>&1
+    oc project "$NAMESPACE" &>/dev/null
 else
     print_status "Creating new namespace..."
-    if oc new-project "$NAMESPACE" 2>/dev/null; then
-        print_success "Created namespace successfully"
-    elif oc create namespace "$NAMESPACE" 2>/dev/null; then
-        print_success "Created namespace successfully"
-        oc project "$NAMESPACE" > /dev/null 2>&1
+    if oc new-project "$NAMESPACE" &>/dev/null; then
+        print_success "Created namespace"
+    elif oc create namespace "$NAMESPACE" &>/dev/null; then
+        print_success "Created namespace"
+        oc project "$NAMESPACE" &>/dev/null
     else
         print_error "Failed to create namespace. You may not have permission."
         exit 1
@@ -321,7 +321,7 @@ if [ "$WITH_CODE" = true ]; then
     echo "$WATCHER_PID" > "$ROOT_DIR/.watch-code.pid"
 
     print_success "Code watcher started (PID: $WATCHER_PID)"
-    print_info "Watching: $ROOT_DIR/griot-and-grits-backend and $ROOT_DIR/gng-web"
+    print_info "Watching: $ROOT_DIR/gng-backend and $ROOT_DIR/gng-web"
     print_info "Logs: $ROOT_DIR/.watch-code.log"
     print_info "Stop with: kill \$(cat $ROOT_DIR/.watch-code.pid)"
 
@@ -349,8 +349,8 @@ if [ "$WITH_CODE" = true ]; then
     BACKEND_ROUTE=$(oc get route backend -n "$NAMESPACE" -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
 
     echo -e "${YELLOW}1.${NC} ${BOLD}Start coding!${NC}"
-    echo -e "   ${DIM}cd griot-and-grits-backend  # Edit backend${NC}"
-    echo -e "   ${DIM}cd gng-web                  # Edit frontend${NC}"
+    echo -e "   ${DIM}cd gng-backend  # Edit backend${NC}"
+    echo -e "   ${DIM}cd gng-web      # Edit frontend${NC}"
     echo -e "   ${DIM}Changes auto-sync to OpenShift${NC}\n"
 
     echo -e "${YELLOW}2.${NC} ${BOLD}View your app:${NC}"

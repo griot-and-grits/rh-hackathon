@@ -7,11 +7,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 FRONTEND_DIR="${FRONTEND_DIR:-$HOME/gng-web}"
-BACKEND_DIR="${BACKEND_DIR:-$HOME/griot-and-grits-backend}"
+BACKEND_DIR="${BACKEND_DIR:-$HOME/gng-backend}"
 
 # GitHub repos
 FRONTEND_REPO="https://github.com/griot-and-grits/gng-web.git"
-BACKEND_REPO="https://github.com/griot-and-grits/griot-and-grits-backend.git"
+BACKEND_REPO="https://github.com/griot-and-grits/gng-backend.git"
 
 # Colors for output
 RED='\033[0;31m'

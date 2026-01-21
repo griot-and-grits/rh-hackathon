@@ -85,7 +85,7 @@ To deploy the frontend and backend code directly on OpenShift with automatic rel
 This will:
 - Deploy backend (FastAPI) with hot-reload at `https://backend-gng-<username>.apps...`
 - Deploy frontend (Next.js) with hot-reload at `https://frontend-gng-<username>.apps...`
-- Clone repos to `rh-hackathon/griot-and-grits-backend` and `rh-hackathon/gng-web`
+- Clone repos to `rh-hackathon/gng-backend` and `rh-hackathon/gng-web`
 - **Start automatic code sync watcher in background**
 
 **Automatic code sync:**
@@ -93,7 +93,7 @@ This will:
 Once setup is complete, just edit code normally:
 
 ```bash
-cd griot-and-grits-backend
+cd gng-backend
 vim app/server.py
 # Save file... automatically synced to pod within 1 second!
 ```
@@ -107,6 +107,14 @@ The watcher automatically syncs changes when you save files. No manual commands 
 ./scripts/watch-ctl.sh logs      # View sync logs
 ./scripts/watch-ctl.sh stop      # Stop auto-sync
 ./scripts/watch-ctl.sh start gng-<username>  # Restart
+```
+
+**Manual sync (without watcher):**
+
+```bash
+./scripts/sync-code.sh           # Sync both backend and frontend
+./scripts/sync-code.sh -b        # Sync backend only
+./scripts/sync-code.sh -f        # Sync frontend only
 ```
 
 ---
@@ -251,7 +259,7 @@ oc logs <pod-name> -n gng-<username>
 
 Configuration files are created automatically:
 
-**Local:** `~/griot-and-grits-backend/.env`
+**Local:** `~/gng-backend/.env`
 **OpenShift:** `.env.openshift`
 
 Key variables:

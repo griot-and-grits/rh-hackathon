@@ -3,7 +3,7 @@
 
 set -e
 
-BACKEND_DIR="${BACKEND_DIR:-$HOME/griot-and-grits-backend}"
+BACKEND_DIR="${BACKEND_DIR:-$HOME/gng-backend}"
 
 # Colors
 RED='\033[0;31m'

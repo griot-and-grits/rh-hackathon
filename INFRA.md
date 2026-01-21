@@ -4,7 +4,7 @@ This guide covers deploying services to OpenShift for the Griot & Grits project.
 
 ## For Students/Labbers (RHOAI Workbenches)
 
-If you're working in a Red Hat OpenShift AI workbench where you cannot run containers locally, use the OpenShift setup to create your own namespace with a PostgreSQL database.
+If you're working in a Red Hat OpenShift AI workbench where you cannot run containers locally, use the OpenShift setup to create your own namespace with MongoDB and MinIO.
 
 ### Quick Start
 
@@ -17,12 +17,17 @@ oc login <cluster-url>
 
 # Or specify username directly
 ./scripts/setup-openshift.sh --username jdoe
+
+# Deploy with hot-reload code (optional)
+./scripts/setup-openshift.sh --username jdoe --with-code
 ```
 
 This will:
 - Create a personal namespace: `gng-<username>`
-- Deploy PostgreSQL database
+- Deploy MongoDB database
+- Deploy MinIO object storage
 - Create environment configuration file
+- (Optional) Deploy frontend and backend with hot-reload
 
 See [User Namespace Setup](#user-namespace-setup-students) for details.
 
@@ -30,7 +35,144 @@ See [User Namespace Setup](#user-namespace-setup-students) for details.
 
 ## For Admins
 
-## Whisper ASR Deployment
+## MongoDB Database Deployment
+
+Deploy MongoDB database on OpenShift for hackathon development.
+
+### Prerequisites
+
+- `oc` CLI installed
+- Logged into OpenShift cluster
+- Namespace/project created
+
+### Quick Deploy
+
+```bash
+# Login to OpenShift
+oc login <cluster-url>
+
+# Deploy MongoDB + MinIO together
+./scripts/deploy-services.sh --namespace gng-<username>
+
+# Or deploy individually
+oc apply -f infra/mongodb/openshift/ -n gng-<username>
+```
+
+### Database Configuration
+
+| Setting | Value |
+|---------|-------|
+| Database | `gngdb` |
+| User | `admin` |
+| Password | `gngdevpass12` |
+| Port | `27017` |
+| Service Name | `mongodb` |
+
+### Connection String
+
+Within the cluster:
+```
+mongodb://admin:gngdevpass12@mongodb:27017/gngdb
+```
+
+From outside (using port-forward):
+```bash
+oc port-forward service/mongodb 27017:27017 -n gng-<username>
+# Then connect to: mongodb://admin:gngdevpass12@localhost:27017/gngdb
+```
+
+### Troubleshooting
+
+```bash
+# Check pod status
+oc get pods -n gng-<username>
+
+# View logs
+oc logs -f deployment/mongodb -n gng-<username>
+
+# Connect interactively
+oc rsh deployment/mongodb -n gng-<username>
+# Then: mongosh -u admin -p gngdevpass12 --authenticationDatabase admin
+```
+
+---
+
+## MinIO Object Storage Deployment
+
+Deploy MinIO S3-compatible object storage on OpenShift.
+
+### Prerequisites
+
+- `oc` CLI installed
+- Logged into OpenShift cluster
+- Namespace/project created
+
+### Quick Deploy
+
+```bash
+# Deploy MongoDB + MinIO together
+./scripts/deploy-services.sh --namespace gng-<username>
+
+# Or deploy individually
+oc apply -f infra/minio/openshift/ -n gng-<username>
+```
+
+### MinIO Configuration
+
+| Setting | Value |
+|---------|-------|
+| Access Key | `minioadmin` |
+| Secret Key | `minioadmin` |
+| API Port | `9000` |
+| Console Port | `9001` |
+| Service Name | `minio` |
+| Default Bucket | `artifacts` |
+
+### Access MinIO
+
+**API Endpoint** (within cluster):
+```
+minio:9000
+```
+
+**Web Console**:
+```bash
+# Get console URL
+oc get route minio-console -n gng-<username>
+```
+
+**From outside** (using port-forward):
+```bash
+# API
+oc port-forward service/minio 9000:9000 -n gng-<username>
+
+# Console
+oc port-forward service/minio 9001:9001 -n gng-<username>
+# Then visit: http://localhost:9001
+```
+
+### Python Usage
+
+```python
+from minio import Minio
+
+client = Minio(
+    "minio:9000",
+    access_key="minioadmin",
+    secret_key="minioadmin",
+    secure=False
+)
+
+# Upload file
+client.fput_object("artifacts", "test.txt", "/path/to/file.txt")
+
+# Download file
+client.fget_object("artifacts", "test.txt", "/path/to/save.txt")
+```
+
+---
+
+## Whisper ASR Deployment (Optional)
 
 Deploy OpenAI Whisper speech-to-text service on OpenShift.
 
@@ -53,7 +195,7 @@ oc login <cluster-url>
 ./infra/whisper/deploy.sh --model small
 
 # Deploy to specific namespace
-./infra/whisper/deploy.sh --namespace griot-grits --model medium
+./infra/whisper/deploy.sh --namespace gng-<username> --model medium
 
 # Remove deployment
 ./infra/whisper/deploy.sh --delete
@@ -74,7 +216,7 @@ oc login <cluster-url>
 Once deployed, get the route URL:
 
 ```bash
-oc get route whisper-asr -n griot-grits
+oc get route whisper-asr -n gng-<username>
 ```
 
 Transcribe audio:
@@ -88,7 +230,7 @@ curl -X POST "https://<route-url>/asr" \
 
 ### Backend Integration
 
-To enable transcription in the Griot & Grits backend, update `.env`:
+To enable transcription in the Griot & Grits backend, update `.env.openshift`:
 
 ```env
 PROCESSING_ENABLE_TRANSCRIPTION=true
@@ -111,92 +253,104 @@ Requires GPU nodes with NVIDIA GPU Operator installed.
 
 ```bash
 # Check pod status
-oc get pods -n griot-grits
+oc get pods -n gng-<username>
 
 # View logs
-oc logs -f deployment/whisper-asr -n griot-grits
+oc logs -f deployment/whisper-asr -n gng-<username>
 
 # Describe deployment for events
-oc describe deployment whisper-asr -n griot-grits
+oc describe deployment whisper-asr -n gng-<username>
 
 # Check resource usage
-oc adm top pods -n griot-grits
+oc adm top pods -n gng-<username>
 ```
 
 ---
 
-## PostgreSQL Database Deployment
+## Hot-Reload Code Deployment
 
-Deploy PostgreSQL database on OpenShift for hackathon development.
+Deploy the frontend and backend application code with automatic hot-reload.
 
 ### Prerequisites
 
-- `oc` CLI installed
-- Logged into OpenShift cluster
+- MongoDB and MinIO deployed (via `setup-openshift.sh` or `deploy-services.sh`)
 - Namespace/project created
 
 ### Quick Deploy
 
 ```bash
-# Login to OpenShift
-oc login <cluster-url>
+# Deploy with code during setup
+./scripts/setup-openshift.sh --username jdoe --with-code
 
-# Deploy with defaults
-./infra/postgres/deploy.sh
-
-# Deploy to specific namespace
-./infra/postgres/deploy.sh --namespace griot-grits
-
-# Verify deployment
-./infra/postgres/deploy.sh --verify-only
-
-# Remove deployment
-./infra/postgres/deploy.sh --delete
+# Or deploy code separately
+./scripts/deploy-code.sh --namespace gng-<username>
 ```
 
-### Database Configuration
+This deploys:
+- **Backend**: FastAPI with uvicorn --reload
+- **Frontend**: Next.js with next dev
+- **Auto-sync**: Background watcher that syncs local code changes
 
-| Setting | Value |
-|---------|-------|
-| Database | `hackathon_db` |
-| User | `hackathon` |
-| Password | `hackathon123` |
-| Port | `5432` |
-| Service Name | `postgres` |
+### Application Routes
 
-### Connection String
-
-Within the cluster:
-```
-postgresql://hackathon:hackathon123@postgres:5432/hackathon_db
-```
-
-From outside (using port-forward):
 ```bash
-oc port-forward service/postgres 5432:5432 -n <namespace>
-# Then connect to: postgresql://hackathon:hackathon123@localhost:5432/hackathon_db
+# Get application URLs
+oc get routes -n gng-<username>
+
+# Frontend: https://frontend-gng-<username>.apps...
+# Backend API: https://backend-gng-<username>.apps.../docs
 ```
+
+### Code Synchronization
+
+**Automatic sync** (started with `--with-code`):
+```bash
+# Check watcher status
+./scripts/watch-ctl.sh status
+
+# View sync logs
+./scripts/watch-ctl.sh logs
+
+# Stop/restart watcher
+./scripts/watch-ctl.sh stop
+./scripts/watch-ctl.sh start gng-<username>
+```
+
+**Manual sync**:
+```bash
+# Sync both backend and frontend
+./scripts/sync-code.sh
+
+# Sync backend only
+./scripts/sync-code.sh -b
+
+# Sync frontend only
+./scripts/sync-code.sh -f
+```
+
+### Development Workflow
+
+1. Edit code locally in `rh-hackathon/gng-backend` or `rh-hackathon/gng-web`
+2. Save files - changes automatically sync to pods (if watcher running)
+3. Application reloads automatically (hot-reload)
+4. View changes at your route URL
 
 ### Troubleshooting
 
 ```bash
 # Check pod status
-oc get pods -n griot-grits
+oc get pods -n gng-<username>
 
-# View logs
-oc logs -f deployment/postgres -n griot-grits
+# View backend logs
+oc logs -f deployment/backend -n gng-<username>
 
-# Run verification
-./infra/postgres/deploy.sh --verify-only -n griot-grits
+# View frontend logs
+oc logs -f deployment/frontend -n gng-<username>
 
-# Connect interactively
-oc run psql-client --rm -it \
-  --image=registry.redhat.io/rhel9/postgresql-15 \
-  -n griot-grits -- bash
-# Then: psql -h postgres -U hackathon -d hackathon_db
+# Restart pods
+oc rollout restart deployment/backend -n gng-<username>
+oc rollout restart deployment/frontend -n gng-<username>
 ```
-
-See [infra/postgres/README.md](infra/postgres/README.md) for detailed documentation.
 
 ---
 
@@ -215,39 +369,65 @@ oc login <cluster-url>
 
 # Or specify username
 ./scripts/setup-openshift.sh --username jdoe
+
+# With hot-reload code deployment
+./scripts/setup-openshift.sh --username jdoe --with-code
 ```
 
 This creates:
 - **Namespace**: `gng-<username>` (e.g., `gng-jdoe`)
-- **PostgreSQL**: Database service at `postgres:5432`
+- **MongoDB**: Database service at `mongodb:27017`
+- **MinIO**: Object storage at `minio:9000`
 - **Environment file**: `.env.openshift` with connection details
+- (Optional) **Backend + Frontend**: With hot-reload
 
 ### Using Your Database
 
 From code running in the same namespace:
 ```python
-import psycopg2
+from pymongo import MongoClient
 
-conn = psycopg2.connect(
-    host="postgres",
-    user="hackathon",
-    password="hackathon123",
-    database="hackathon_db"
+client = MongoClient("mongodb://admin:gngdevpass12@mongodb:27017/")
+db = client["gngdb"]
+```
+
+From your local workbench (requires port-forward):
+```bash
+# In one terminal
+oc port-forward service/mongodb 27017:27017 -n gng-<username>
+
+# In another terminal/notebook
+from pymongo import MongoClient
+client = MongoClient("mongodb://admin:gngdevpass12@localhost:27017/")
+db = client["gngdb"]
+```
+
+### Using MinIO Storage
+
+From code running in the same namespace:
+```python
+from minio import Minio
+
+client = Minio(
+    "minio:9000",
+    access_key="minioadmin",
+    secret_key="minioadmin",
+    secure=False
 )
 ```
 
 From your local workbench (requires port-forward):
 ```bash
 # In one terminal
-oc port-forward service/postgres 5432:5432 -n gng-<username>
+oc port-forward service/minio 9000:9000 -n gng-<username>
 
 # In another terminal/notebook
-import psycopg2
-conn = psycopg2.connect(
-    host="localhost",
-    user="hackathon",
-    password="hackathon123",
-    database="hackathon_db"
+from minio import Minio
+client = Minio(
+    "localhost:9000",
+    access_key="minioadmin",
+    secret_key="minioadmin",
+    secure=False
 )
 ```
 
@@ -257,11 +437,11 @@ conn = psycopg2.connect(
 # View all your resources
 oc get all -n gng-<username>
 
-# View PostgreSQL logs
-oc logs -f deployment/postgres -n gng-<username>
+# View MongoDB logs
+oc logs -f deployment/mongodb -n gng-<username>
 
-# Verify database
-./infra/postgres/deploy.sh --verify-only --namespace gng-<username>
+# View MinIO logs
+oc logs -f deployment/minio -n gng-<username>
 
 # Delete everything (careful!)
 ./scripts/setup-openshift.sh --delete
@@ -269,7 +449,7 @@ oc logs -f deployment/postgres -n gng-<username>
 
 ### Environment Configuration
 
-After setup, your database connection details are saved in `.env.openshift`:
+After setup, your connection details are saved in `.env.openshift`:
 
 ```bash
 # Source it in your shell
@@ -282,10 +462,22 @@ load_dotenv('.env.openshift')
 
 ---
 
-## Future Infrastructure
+## Resource Requirements
 
-Additional shared services to deploy:
+Per-user resource requirements:
 
-- [ ] Shared MongoDB (for multi-user environments)
-- [ ] Shared MinIO (for shared object storage)
-- [ ] LLM service (for AI enrichment)
+**Services only** (MongoDB + MinIO):
+- CPU Request: 200m
+- CPU Limit: 1000m
+- Memory Request: 768Mi
+- Memory Limit: 1.5Gi
+
+**Full stack** (Services + Backend + Frontend with hot-reload):
+- CPU Request: 700m
+- CPU Limit: 3000m
+- Memory Request: 2.5Gi
+- Memory Limit: 5.5Gi
+
+For 60 users with full stack:
+- CPU Request: ~42 cores
+- Memory Request: ~150 GiB

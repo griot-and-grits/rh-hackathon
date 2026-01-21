@@ -63,10 +63,18 @@ if [ -z "$BACKEND_URL" ]; then
     BACKEND_URL="backend-${NAMESPACE}.apps.cluster.local"
 fi
 
-# Update frontend manifest with backend URL
+# Get cluster domain from existing route or construct it
+CLUSTER_DOMAIN=$(oc get route -n openshift-console console -o jsonpath='{.spec.host}' 2>/dev/null | sed 's/console-openshift-console\.//' || echo "apps.cluster.local")
+
+# Construct frontend URL
+FRONTEND_URL="frontend-${NAMESPACE}.${CLUSTER_DOMAIN}"
+
+# Update frontend manifest with URLs
 FRONTEND_MANIFEST="$INFRA_DIR/frontend/openshift/frontend.yaml"
 TEMP_FRONTEND="/tmp/frontend-${NAMESPACE}.yaml"
-sed "s|https://backend-NAMESPACE.CLUSTER_DOMAIN|https://${BACKEND_URL}|g" "$FRONTEND_MANIFEST" > "$TEMP_FRONTEND"
+sed -e "s|https://backend-NAMESPACE.CLUSTER_DOMAIN|https://${BACKEND_URL}|g" \
+    -e "s|https://frontend-NAMESPACE.CLUSTER_DOMAIN|https://${FRONTEND_URL}|g" \
+    "$FRONTEND_MANIFEST" > "$TEMP_FRONTEND"
 
 # Deploy Frontend
 echo -e "${CYAN}Deploying frontend...${NC}"
@@ -77,9 +85,6 @@ rm -f "$TEMP_FRONTEND"
 echo -e "${DIM}Waiting for pods to start...${NC}"
 oc rollout status deployment/backend -n "$NAMESPACE" --timeout=5m &>/dev/null
 oc rollout status deployment/frontend -n "$NAMESPACE" --timeout=5m &>/dev/null
-
-# Get frontend URL
-FRONTEND_URL=$(oc get route frontend -n "$NAMESPACE" -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
 
 echo ""
 echo -e "${GREEN}${BOLD}✓ Applications Deployed${NC}\n"

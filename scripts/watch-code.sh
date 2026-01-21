@@ -56,10 +56,10 @@ HACKATHON_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Clone repos if not present
 if [ -z "$BACKEND_DIR" ]; then
-    BACKEND_DIR="$HACKATHON_DIR/griot-and-grits-backend"
+    BACKEND_DIR="$HACKATHON_DIR/gng-backend"
     if [ ! -d "$BACKEND_DIR" ]; then
         echo -e "${CYAN}Cloning backend repository...${NC}"
-        git clone https://github.com/griot-and-grits/griot-and-grits-backend.git "$BACKEND_DIR"
+        git clone https://github.com/griot-and-grits/gng-backend.git "$BACKEND_DIR"
     fi
 fi
 
@@ -129,7 +129,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         "$BACKEND_DIR" "$FRONTEND_DIR" | while read change; do
 
         # Determine which directory changed
-        if [[ "$change" == *"griot-and-grits-backend"* ]]; then
+        if [[ "$change" == *"gng-backend"* ]]; then
             sync_backend
         else
             sync_frontend
@@ -148,7 +148,7 @@ else
         "$BACKEND_DIR" "$FRONTEND_DIR" | while read path action file; do
 
         # Determine which directory changed
-        if [[ "$path" == *"griot-and-grits-backend"* ]]; then
+        if [[ "$path" == *"gng-backend"* ]]; then
             sync_backend
         else
             sync_frontend

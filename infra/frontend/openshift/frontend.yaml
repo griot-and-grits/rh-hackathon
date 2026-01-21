@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      initContainers:
+      - name: clone-repo
+        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          if [ ! -d /code/.git ]; then
+            microdnf install -y git
+            git clone https://github.com/Red-Hat-Hackathon/gng-web.git /code
+          fi
+        volumeMounts:
+        - name: code
+          mountPath: /code
+      containers:
+      - name: frontend
+        image: registry.access.redhat.com/ubi9/nodejs-20:latest
+        workingDir: /code
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          npm install
+          npm run dev -- --host 0.0.0.0
+        ports:
+        - containerPort: 5173
+          name: http
+        env:
+        - name: VITE_API_URL
+          value: "https://backend-NAMESPACE.CLUSTER_DOMAIN"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: code
+          mountPath: /code
+      volumes:
+      - name: code
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  ports:
+  - port: 5173
+    targetPort: 5173
+    protocol: TCP
+    name: http
+  selector:
+    app: frontend
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  to:
+    kind: Service
+    name: frontend
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

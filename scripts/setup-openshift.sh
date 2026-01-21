@@ -38,17 +38,20 @@ usage() {
     echo "Options:"
     echo "  -u, --username NAME     Your username/identifier (default: prompt)"
     echo "  -s, --skip-services     Skip MongoDB + MinIO deployment"
+    echo "  -c, --with-code         Deploy frontend and backend code with hot-reload"
     echo "  -d, --delete            Delete your namespace and all resources"
     echo "  -h, --help              Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0                      Interactive setup (will prompt for username)"
     echo "  $0 -u jdoe              Setup for user 'jdoe'"
+    echo "  $0 -u jdoe --with-code  Setup with code deployment"
     echo "  $0 -u jdoe --delete     Delete namespace for user 'jdoe'"
 }
 
 USERNAME=""
 SKIP_SERVICES=false
+WITH_CODE=false
 DELETE=false
 
 while [[ $# -gt 0 ]]; do
@@ -59,6 +62,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -s|--skip-services)
             SKIP_SERVICES=true
+            shift
+            ;;
+        -c|--with-code)
+            WITH_CODE=true
             shift
             ;;
         -d|--delete)
@@ -298,6 +305,16 @@ EOF
 print_success "Environment configuration saved"
 print_info "File: $ENV_FILE"
 
+# Deploy application code if requested
+if [ "$WITH_CODE" = true ]; then
+    echo ""
+    print_step "Deploying Application Code"
+
+    "$ROOT_DIR/scripts/deploy-code.sh" --namespace "$NAMESPACE"
+
+    echo ""
+fi
+
 print_header "✨ Setup Complete!"
 
 echo -e "${GREEN}${BOLD}✓ Your Environment is Ready!${NC}\n"
@@ -330,11 +347,38 @@ fi
 
 echo -e "${BOLD}📝 Next Steps:${NC}\n"
 
-echo -e "${YELLOW}1.${NC} ${BOLD}Use the backend services:${NC}"
-echo -e "   ${DIM}source .env.openshift${NC}"
-echo -e "   ${DIM}# All connection details are in this file${NC}\n"
+if [ "$WITH_CODE" = true ]; then
+    # Get application routes
+    FRONTEND_ROUTE=$(oc get route frontend -n "$NAMESPACE" -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+    BACKEND_ROUTE=$(oc get route backend -n "$NAMESPACE" -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
 
-echo -e "${YELLOW}2.${NC} ${BOLD}Access MinIO console:${NC}"
+    echo -e "${YELLOW}1.${NC} ${BOLD}Access your application:${NC}"
+    if [ -n "$FRONTEND_ROUTE" ]; then
+        echo -e "   ${CYAN}Frontend:${NC} https://$FRONTEND_ROUTE"
+    fi
+    if [ -n "$BACKEND_ROUTE" ]; then
+        echo -e "   ${CYAN}Backend:${NC}  https://$BACKEND_ROUTE"
+    fi
+    echo -e "   ${DIM}Hot-reload is enabled for code changes${NC}\n"
+
+    echo -e "${YELLOW}2.${NC} ${BOLD}Update code (for development):${NC}"
+    echo -e "   ${DIM}# Sync local changes to running pods${NC}"
+    echo -e "   ${DIM}oc rsync ./backend-code/ \$(oc get pod -l app=backend -o name | head -1):/code -n $NAMESPACE${NC}"
+    echo -e "   ${DIM}oc rsync ./frontend-code/ \$(oc get pod -l app=frontend -o name | head -1):/code -n $NAMESPACE${NC}\n"
+
+    echo -e "${YELLOW}3.${NC} ${BOLD}Access MinIO console:${NC}"
+else
+    echo -e "${YELLOW}1.${NC} ${BOLD}Use the backend services:${NC}"
+    echo -e "   ${DIM}source .env.openshift${NC}"
+    echo -e "   ${DIM}# All connection details are in this file${NC}\n"
+
+    echo -e "${YELLOW}2.${NC} ${BOLD}Deploy your code:${NC}"
+    echo -e "   ${DIM}$0 --username $USERNAME --with-code${NC}"
+    echo -e "   ${DIM}# Deploys frontend and backend with hot-reload${NC}\n"
+
+    echo -e "${YELLOW}3.${NC} ${BOLD}Access MinIO console:${NC}"
+fi
+
 if [ -n "$MINIO_CONSOLE" ]; then
     echo -e "   ${DIM}https://$MINIO_CONSOLE${NC}"
     echo -e "   ${DIM}Login: minioadmin / minioadmin${NC}\n"
@@ -342,9 +386,11 @@ else
     echo -e "   ${DIM}oc get route minio-console -n $NAMESPACE${NC}\n"
 fi
 
-echo -e "${YELLOW}3.${NC} ${BOLD}Port-forward for local access:${NC}"
-echo -e "   ${DIM}oc port-forward service/mongodb 27017:27017 -n $NAMESPACE${NC}"
-echo -e "   ${DIM}oc port-forward service/minio 9000:9000 -n $NAMESPACE${NC}\n"
+if [ "$WITH_CODE" != true ]; then
+    echo -e "${YELLOW}4.${NC} ${BOLD}Port-forward for local access:${NC}"
+    echo -e "   ${DIM}oc port-forward service/mongodb 27017:27017 -n $NAMESPACE${NC}"
+    echo -e "   ${DIM}oc port-forward service/minio 9000:9000 -n $NAMESPACE${NC}\n"
+fi
 
 echo -e "${BOLD}🛠  Useful Commands:${NC}\n"
 echo -e "  ${CYAN}oc get all -n $NAMESPACE${NC}"

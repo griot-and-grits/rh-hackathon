@@ -1,171 +1,290 @@
 # Griot & Grits - Hackathon Toolkit
 
-Development and infrastructure scripts for the Griot & Grits project - AI-powered preservation of minority history.
+Development toolkit for the Griot & Grits project - AI-powered preservation of minority history.
 
-## Quick Start (Students/Labbers)
+## Quick Start
 
-### Prerequisites
+Choose your development environment:
 
-- Git
-- Node.js 18+
-- Python 3.10+
-- `uv` (recommended) or `pip`
+### Option 1: Local Development (with containers)
 
-> **Note:** Podman or Docker will be auto-installed if not present. Works in rootless environments (OpenShift AI workbenches).
-
-### One-Time Setup
+**Prerequisites:** Git, Node.js 18+, Python 3.10+, `uv` or `pip`
 
 ```bash
 cd ~/rh-hackathon
-./scripts/setup.sh
+./scripts/setup.sh          # One-time setup (clones repos, installs deps)
+./scripts/dev-all.sh        # Start everything
 ```
 
-The setup script will automatically:
-- Clone `github.com/griot-and-grits/gng-web` to `~/gng-web`
-- Clone `github.com/griot-and-grits/griot-and-grits-backend` to `~/griot-and-grits-backend`
-- Create `.env` files with local development defaults
-- Install all dependencies
+**URLs:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000/docs
+- MinIO Console: http://localhost:9001
 
-### Daily Development
-
+**Utility commands:**
 ```bash
-# Option 1: Start everything at once
-./scripts/dev-all.sh
-
-# Option 2: Start components separately (recommended)
-./scripts/start-services.sh    # Start MongoDB + MinIO
-./scripts/dev-backend.sh       # Terminal 1: Backend with hot reload
-./scripts/dev-frontend.sh      # Terminal 2: Frontend with hot reload
+./scripts/status.sh         # Check what's running
+./scripts/stop-services.sh  # Stop services
+./scripts/clean.sh          # Remove containers
 ```
 
-### URLs
+---
 
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:3000 |
-| Admin Portal | http://localhost:3000/admin |
-| Backend API | http://localhost:8000 |
-| API Docs | http://localhost:8000/docs |
-| MinIO Console | http://localhost:9001 |
+### Option 2: OpenShift/RHOAI (without containers)
 
-### Utility Commands
+For RHOAI workbenches where containers aren't available.
+
+**Prerequisites:** `oc` CLI, OpenShift cluster access
+
+**Setup:**
+```bash
+oc login <cluster-url>      # Get login command from web console
+cd ~/rh-hackathon
+./scripts/setup-openshift.sh
+```
+
+This creates:
+- Personal namespace: `gng-<username>`
+- MongoDB database
+- MinIO object storage
+- `.env.openshift` file with all connection details
+
+**Using your services:**
+```bash
+# View resources
+oc get all -n gng-<username>
+
+# View logs
+oc logs -f deployment/mongodb -n gng-<username>
+oc logs -f deployment/minio -n gng-<username>
+
+# Access MinIO console
+oc get route minio-console -n gng-<username>
+
+# Delete everything
+./scripts/setup-openshift.sh --delete
+```
+
+**Port forwarding (for local access):**
+```bash
+oc port-forward service/mongodb 27017:27017 -n gng-<username>
+oc port-forward service/minio 9000:9000 -n gng-<username>
+```
+
+Connection details are in `.env.openshift` - just load and use!
+
+**Deploying application code with hot-reload:**
+
+To deploy the frontend and backend code directly on OpenShift with automatic reload on changes:
 
 ```bash
-./scripts/status.sh            # Check what's running
-./scripts/stop-services.sh     # Stop MongoDB + MinIO
-./scripts/clean.sh             # Remove containers (keeps data)
-./scripts/clean.sh --all       # Remove containers AND data
+# Option A: Deploy during initial setup
+./scripts/setup-openshift.sh --with-code
+
+# Option B: Deploy code after setup
+./scripts/deploy-code.sh -n gng-<username>
+```
+
+This deploys:
+- Backend (FastAPI) with hot-reload at `https://backend-gng-<username>.apps...`
+- Frontend (Next.js) with hot-reload at `https://frontend-gng-<username>.apps...`
+
+**Syncing code changes:**
+
+```bash
+# Get pod names
+oc get pods -n gng-<username>
+
+# Sync your local code changes to running pods
+oc rsync ./backend-code/ <backend-pod>:/code -n gng-<username>
+oc rsync ./frontend-code/ <frontend-pod>:/code -n gng-<username>
+
+# Changes are auto-detected and reloaded
+```
+
+The code will automatically clone from GitHub on first deployment. For development, use `oc rsync` to sync your local changes to the running pods.
+
+---
+
+## Architecture
+
+```
+Frontend (Next.js)  →  Backend (FastAPI)
+    :3000                   :8000
+                               ↓
+                    ┌──────────┼──────────┐
+                    ↓          ↓          ↓
+                MongoDB    MinIO    Whisper
+                 :27017    :9000   (optional)
+                Database  Storage  Transcription
 ```
 
 ## Project Structure
 
 ```
 rh-hackathon/
-├── scripts/                   # Student/labber scripts
-│   ├── setup.sh              # One-time setup
-│   ├── start-services.sh     # Start MongoDB + MinIO
-│   ├── stop-services.sh      # Stop services
-│   ├── dev-backend.sh        # Run backend (hot reload)
-│   ├── dev-frontend.sh       # Run frontend (hot reload)
-│   ├── dev-all.sh            # Run everything
-│   ├── status.sh             # Check service status
-│   └── clean.sh              # Cleanup containers
-├── infra/                     # Infrastructure scripts (admins)
-│   └── whisper/              # Whisper ASR deployment
-│       ├── deploy.sh         # Deploy to OpenShift
-│       └── openshift/        # K8s/OpenShift manifests
+├── scripts/
+│   ├── setup.sh              # Local: One-time setup
+│   ├── setup-openshift.sh    # OpenShift: One-time setup
+│   ├── dev-all.sh            # Local: Start everything
+│   ├── deploy-services.sh    # OpenShift: Deploy MongoDB + MinIO
+│   ├── deploy-code.sh        # OpenShift: Deploy frontend + backend
+│   └── ...
+├── infra/
+│   ├── mongodb/              # MongoDB deployment
+│   ├── minio/                # MinIO deployment
+│   ├── backend/              # Backend app deployment
+│   ├── frontend/             # Frontend app deployment
+│   └── whisper/              # Whisper ASR (optional)
 └── env-templates/            # Environment file templates
-    ├── backend.env           # Backend .env template
-    └── frontend.env          # Frontend .env.local template
 ```
 
-## Architecture
+## Common Tasks
 
-```
-┌─────────────────┐     ┌─────────────────┐
-│    Frontend     │────▶│     Backend     │
-│   (Next.js)     │     │   (FastAPI)     │
-│   Port 3000     │     │   Port 8000     │
-└─────────────────┘     └────────┬────────┘
-                                 │
-                    ┌────────────┼────────────┐
-                    ▼            ▼            ▼
-              ┌──────────┐ ┌──────────┐ ┌──────────┐
-              │ MongoDB  │ │  MinIO   │ │ Whisper  │
-              │  :27017  │ │  :9000   │ │ (OpenShift)
-              └──────────┘ └──────────┘ └──────────┘
-```
+### Local Development
 
-
-## Environment Variables
-
-### Backend (`griot-and-grits-backend/.env`)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_URI` | `mongodb://admin:gngdevpass12@localhost:27017/` | MongoDB connection |
-| `STORAGE_ENDPOINT` | `localhost:9000` | MinIO endpoint |
-| `PROCESSING_ENABLE_TRANSCRIPTION` | `false` | Enable Whisper ASR |
-| `PROCESSING_TRANSCRIPTION_API_URL` | - | Whisper API URL |
-
-### Frontend (`gng-web/.env.local`)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NEXT_PUBLIC_ADMIN_API_BASE_URL` | `http://localhost:8000` | Backend URL |
-| `ADMIN_AUTH_DISABLED` | `true` | Disable auth for dev |
-
-Full templates in `env-templates/`.
-
-## Troubleshooting
-
-### No container runtime found
 ```bash
-# Re-run setup to auto-install Podman
-./scripts/setup.sh
+# Start/stop services
+./scripts/start-services.sh
+./scripts/stop-services.sh
 
-# Or check what's available
-which podman docker
-```
+# Run backend/frontend separately
+./scripts/dev-backend.sh    # Terminal 1
+./scripts/dev-frontend.sh   # Terminal 2
 
-### Port already in use
-```bash
-# Find what's using the port
-lsof -i :3000
-lsof -i :8000
-
-# Kill the process
-kill -9 <PID>
-```
-
-### MongoDB/MinIO won't start
-```bash
 # Check status
 ./scripts/status.sh
 
-# Check for existing containers (use podman or docker)
-podman ps -a | grep gng
+# Clean up
+./scripts/clean.sh          # Remove containers, keep data
+./scripts/clean.sh --all    # Remove everything
+```
 
-# Remove and restart
-./scripts/clean.sh
+### OpenShift Development
+
+```bash
+# View all resources
+oc get all -n gng-<username>
+
+# Deploy application code with hot-reload
+./scripts/deploy-code.sh -n gng-<username>
+
+# Sync local code changes to running pods
+oc rsync ./backend-code/ $(oc get pod -l app=backend -o name | head -1):/code -n gng-<username>
+oc rsync ./frontend-code/ $(oc get pod -l app=frontend -o name | head -1):/code -n gng-<username>
+
+# View application logs
+oc logs -f deployment/backend -n gng-<username>
+oc logs -f deployment/frontend -n gng-<username>
+
+# Shell into pod
+oc rsh deployment/mongodb -n gng-<username>
+
+# Copy files
+oc cp file.txt deployment/mongodb:/tmp/ -n gng-<username>
+
+# Clean up old jobs
+./scripts/cleanup-jobs.sh
+
+# Redeploy services
+./scripts/deploy-services.sh --delete -n gng-<username>
+./scripts/deploy-services.sh -n gng-<username>
+```
+
+## Troubleshooting
+
+### Local Development
+
+**Port already in use:**
+```bash
+lsof -i :3000  # Find process
+kill -9 <PID>  # Kill it
+```
+
+**Services won't start:**
+```bash
+./scripts/status.sh        # Check status
+podman ps -a | grep gng    # Check containers
+./scripts/clean.sh         # Clean and restart
 ./scripts/start-services.sh
 ```
 
-### Backend can't connect to MongoDB
+**Backend can't connect:**
 ```bash
-# Check MongoDB is running
-podman logs gng-mongodb  # or: docker logs gng-mongodb
-
-# Verify connection string in .env
-grep DB_URI ~/griot-and-grits-backend/.env
+podman logs gng-mongodb    # Check MongoDB
+grep DB_URI ~/.env         # Verify connection string
 ```
 
-## Contributing
+### OpenShift
 
-1. Create a feature branch
-2. Make your changes
-3. Test locally with `./scripts/dev-all.sh`
-4. Submit a PR
+**Not logged in:**
+```bash
+oc whoami  # Check login status
+# Get new login command from web console:
+# Click username → Copy login command
+```
+
+**Pods not running:**
+```bash
+oc get pods -n gng-<username>
+oc describe pod <pod-name> -n gng-<username>
+oc logs <pod-name> -n gng-<username>
+```
+
+**Jobs accumulating:**
+```bash
+./scripts/cleanup-jobs.sh  # Clean up completed jobs
+```
+
+**Start over:**
+```bash
+./scripts/setup-openshift.sh --delete
+./scripts/setup-openshift.sh
+```
+
+## Environment Variables
+
+Configuration files are created automatically:
+
+**Local:** `~/griot-and-grits-backend/.env`
+**OpenShift:** `.env.openshift`
+
+Key variables:
+- `DB_URI` - MongoDB connection string
+- `STORAGE_ENDPOINT` - MinIO endpoint
+- `STORAGE_ACCESS_KEY/SECRET_KEY` - MinIO credentials
+- `PROCESSING_ENABLE_TRANSCRIPTION` - Enable Whisper (optional)
+
+See `env-templates/` for full examples.
+
+## Advanced
+
+### Deploy Whisper ASR (Optional)
+
+For speech-to-text transcription:
+
+```bash
+./infra/whisper/deploy.sh --namespace gng-<username>
+```
+
+See [INFRA.md](INFRA.md) for details.
+
+### Manual Service Deployment
+
+```bash
+# Deploy MongoDB + MinIO only
+./scripts/deploy-services.sh --namespace gng-<username>
+
+# Skip initialization
+./scripts/deploy-services.sh --skip-init -n gng-<username>
+```
+
+## Getting Help
+
+- Check logs: `oc logs -f deployment/<name>`
+- View events: `oc get events -n gng-<username>`
+- Describe resource: `oc describe deployment/<name>`
+- Ask organizers on Slack/Discord
 
 ## License
 

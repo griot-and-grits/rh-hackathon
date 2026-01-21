@@ -214,5 +214,5 @@ __marimo__/
 .watch-code.pid
 
 # Cloned application repositories
-griot-and-grits-backend/
+gng-backend/
 gng-web/

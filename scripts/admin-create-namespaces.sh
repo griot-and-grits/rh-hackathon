@@ -89,21 +89,27 @@ create_namespace() {
 
     echo -n "  Creating $namespace for $username... "
 
-    # Create namespace
+    # Create namespace (or verify it exists)
+    local created=false
     if oc new-project "$namespace" --display-name="Griot & Grits - $username" &>/dev/null; then
-        # Label for cleanup
-        oc label namespace "$namespace" app=griot-grits-hackathon &>/dev/null
-
-        # Grant user admin access
-        if oc adm policy add-role-to-user admin "$username" -n "$namespace" &>/dev/null; then
-            echo -e "${GREEN}✓${NC}"
-            return 0
-        else
-            echo -e "${YELLOW}⚠ Created but failed to grant access${NC}"
-            return 1
-        fi
+        created=true
+    elif oc get namespace "$namespace" &>/dev/null; then
+        # Namespace already exists, that's OK
+        created=true
     else
-        echo -e "${YELLOW}⚠ Already exists or failed${NC}"
+        echo -e "${YELLOW}⚠ Failed to create${NC}"
+        return 1
+    fi
+
+    # Label for cleanup (skip if already labeled)
+    oc label namespace "$namespace" app=griot-grits-hackathon --overwrite &>/dev/null
+
+    # Grant user admin access (or update if already exists)
+    if oc adm policy add-role-to-user admin "$username" -n "$namespace" &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+        return 0
+    else
+        echo -e "${YELLOW}⚠ Failed to grant access${NC}"
         return 1
     fi
 }

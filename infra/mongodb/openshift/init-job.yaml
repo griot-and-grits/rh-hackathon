@@ -9,12 +9,25 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: init
-        image: image-registry.openshift-image-registry.svc:5000/openshift/mongodb:7.0
+        image: image-registry.openshift-image-registry.svc:5000/openshift/mongodb:latest
+        # Inject namespace if you need dynamic variables (optional)
+        env:
+        - name: CURRENT_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         command: ["/bin/bash", "-c"]
         args:
         - |
+          # 1. FIX: Set HOME to /tmp so mongosh can write its history file without error
+          export HOME=/tmp
+
+          # (Optional) Dynamic user logic if needed later
+          # USER=${CURRENT_NAMESPACE#gng-}
+
           echo "Waiting for MongoDB to be ready..."
-          until mongosh "mongodb://admin:gngdevpass12@mongodb:27017/gngdb?authSource=admin" --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+          # Note: We use the Service name 'mongodb' which resolves locally
+          until mongosh "mongodb://admin:gngdevpass12@mongodb:27017/gngdb?authSource=admin" --eval "db.adminCommand('ping')"; do
             echo "MongoDB is unavailable - sleeping"
             sleep 2
           done
@@ -22,7 +35,6 @@ spec:
           echo "MongoDB is ready - creating collections and sample data..."
 
           mongosh "mongodb://admin:gngdevpass12@mongodb:27017/gngdb?authSource=admin" <<EOF
-            // Create collections collection with sample data
             db.collections.insertOne({
               name: "Demo Collection",
               description: "Sample collection for hackathon",
@@ -30,7 +42,6 @@ spec:
               owner: "admin_demo"
             });
 
-            // Create artifacts collection
             db.artifacts.insertOne({
               title: "Sample Artifact",
               collection_id: "demo",

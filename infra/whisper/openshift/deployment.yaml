@@ -17,11 +17,17 @@ spec:
       labels:
         app: whisper-asr
     spec:
+      # Tolerate GPU node taint
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      # Schedule on GPU nodes
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
       containers:
         - name: whisper-asr
-          # Using whisper-asr-webservice - a popular FastAPI wrapper for Whisper
-          # https://github.com/ahmetoner/whisper-asr-webservice
-          image: onerahmet/openai-whisper-asr-webservice:latest
+          image: docker.io/syntaxsdev/whisper-asr-webservice:latest-gpu
           ports:
             - containerPort: 9000
               protocol: TCP
@@ -33,21 +39,30 @@ spec:
                 configMapKeyRef:
                   name: whisper-config
                   key: model
-            # Engine: openai_whisper or faster_whisper
+            # Engine: openai_whisper, faster_whisper, or whisperx
             - name: ASR_ENGINE
               valueFrom:
                 configMapKeyRef:
                   name: whisper-config
                   key: engine
+            - name: ASR_DEVICE
+              value: cuda
+            - name: ASR_MODEL_PATH
+              value: /tmp/.cache
+            - name: MODEL_IDLE_TIMEOUT
+              value: "0"
+            - name: TRANSFORMERS_CACHE
+              value: /tmp/huggingface/hub
+            - name: MPLCONFIGDIR
+              value: /tmp/.config
           resources:
             requests:
-              memory: "2Gi"
+              memory: "6Gi"
               cpu: "1"
             limits:
-              memory: "8Gi"
+              memory: "16Gi"
               cpu: "4"
-              # Uncomment for GPU support (requires GPU nodes)
-              # nvidia.com/gpu: "1"
+              nvidia.com/gpu: "1"
           livenessProbe:
             httpGet:
               path: /

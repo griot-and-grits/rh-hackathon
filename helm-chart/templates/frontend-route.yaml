@@ -1,0 +1,19 @@
+{{- if and .Values.frontend.enabled .Values.frontend.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: frontend
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  host: {{ .Values.frontend.route.host }}
+  to:
+    kind: Service
+    name: frontend
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.frontend.route.tls.termination }}
+    insecureEdgeTerminationPolicy: {{ .Values.frontend.route.tls.insecureEdgeTerminationPolicy }}
+{{- end }}

@@ -1,0 +1,166 @@
+# Default values for griot-and-grits
+# This is a YAML-formatted file.
+
+global:
+  namespace: ""
+  imageRegistry: "registry.access.redhat.com"
+
+# Backend Configuration
+backend:
+  enabled: true
+  image:
+    repository: ubi9/python-311
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  service:
+    type: ClusterIP
+    port: 8000
+  route:
+    enabled: true
+    host: ""  # Must be specified manually
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  config:
+    dbUri: "mongodb://admin:gngdevpass12@mongodb:27017/gngdb?authSource=admin"
+    dbName: "gngdb"
+    storageEndpoint: "minio:9000"
+    storageAccessKey: "minioadmin"
+    storageSecretKey: "minioadmin"
+    storageBucket: "artifacts"
+    storageUseSsl: "false"
+    processingMode: "sync"
+    processingEnableMetadataExtraction: "true"
+    processingEnableTranscription: "false"
+    corsOrigins: "*"
+    logLevel: "debug"
+  git:
+    repo: "https://github.com/griot-and-grits/gng-backend.git"
+    branch: "main"
+
+# Frontend Configuration
+frontend:
+  enabled: true
+  image:
+    repository: ubi9/nodejs-20
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "200m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  service:
+    type: ClusterIP
+    port: 3000
+  route:
+    enabled: true
+    host: ""  # Must be specified manually
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  config:
+    nextPublicApiUrl: ""  # Auto-generated if empty
+    nextAuthUrl: ""  # Auto-generated if empty
+    nextPublicBaseUrl: ""  # Auto-generated if empty
+  git:
+    repo: "https://github.com/griot-and-grits/gng-web.git"
+    branch: "main"
+
+# MongoDB Configuration
+mongodb:
+  enabled: true
+  image:
+    repository: "image-registry.openshift-image-registry.svc:5000/openshift/mongodb"
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "50m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  service:
+    type: ClusterIP
+    port: 27017
+  persistence:
+    enabled: false
+    storageClass: ""
+    size: 10Gi
+  auth:
+    rootUsername: "admin"
+    rootPassword: "gngdevpass12"
+    database: "gngdb"
+
+# MinIO Configuration
+minio:
+  enabled: true
+  image:
+    repository: quay.io/minio/minio
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  service:
+    type: ClusterIP
+    apiPort: 9000
+    consolePort: 9001
+  route:
+    enabled: true
+    host: ""  # Must be specified manually
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  persistence:
+    enabled: false
+    storageClass: ""
+    size: 20Gi
+  auth:
+    rootUser: "minioadmin"
+    rootPassword: "minioadmin"
+
+# Whisper ASR (Optional)
+whisper:
+  enabled: false
+  image:
+    repository: onerahmet/openai-whisper-asr-webservice
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1"
+    limits:
+      memory: "8Gi"
+      cpu: "4"
+  service:
+    type: ClusterIP
+    port: 9000
+  route:
+    enabled: false
+    host: ""
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  config:
+    model: "base"  # tiny, base, small, medium, large, large-v2, large-v3
+    engine: "openai_whisper"
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi

@@ -1,0 +1,66 @@
+{{- if .Values.whisper.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper-asr
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: whisper
+spec:
+  replicas: {{ .Values.whisper.replicas }}
+  selector:
+    matchLabels:
+      {{- include "griot-and-grits.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: whisper
+  template:
+    metadata:
+      labels:
+        {{- include "griot-and-grits.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: whisper
+    spec:
+      containers:
+        - name: whisper-asr
+          image: {{ printf "%s:%s" .Values.whisper.image.repository .Values.whisper.image.tag }}
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+              name: http
+          env:
+            - name: ASR_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: whisper-config
+                  key: model
+            - name: ASR_ENGINE
+              valueFrom:
+                configMapKeyRef:
+                  name: whisper-config
+                  key: engine
+          resources:
+            {{- toYaml .Values.whisper.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: model-cache
+              mountPath: /root/.cache
+      volumes:
+        - name: model-cache
+          {{- if .Values.whisper.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: whisper-model-cache-pvc
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- end }}

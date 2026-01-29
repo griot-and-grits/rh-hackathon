@@ -1,0 +1,169 @@
+# Example production values file for Griot & Grits Helm Chart
+# Copy this file and customize for your environment:
+#   cp values-production.yaml.example values-production.yaml
+#   helm install griot-and-grits ./helm-chart -f values-production.yaml
+
+global:
+  namespace: ""
+  imageRegistry: "registry.access.redhat.com"
+
+# Backend Configuration
+backend:
+  enabled: true
+  replicas: 3  # High availability
+  image:
+    repository: ubi9/python-311
+    tag: latest
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  service:
+    type: ClusterIP
+    port: 8000
+  route:
+    enabled: true
+    host: ""  # Auto-generated
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  config:
+    # Update these with your actual credentials
+    dbUri: "mongodb://admin:CHANGE_ME@mongodb:27017/gngdb?authSource=admin"
+    dbName: "gngdb"
+    storageEndpoint: "minio:9000"
+    storageAccessKey: "CHANGE_ME"
+    storageSecretKey: "CHANGE_ME"
+    storageBucket: "artifacts"
+    storageUseSsl: "false"
+    processingMode: "sync"
+    processingEnableMetadataExtraction: "true"
+    processingEnableTranscription: "true"  # Enable if Whisper is enabled
+    corsOrigins: "https://frontend-production.example.com"  # Restrict CORS
+    logLevel: "info"  # Use info for production
+  git:
+    repo: "https://github.com/griot-and-grits/gng-backend.git"
+    branch: "main"
+
+# Frontend Configuration
+frontend:
+  enabled: true
+  replicas: 2  # High availability
+  image:
+    repository: ubi9/nodejs-20
+    tag: latest
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "500m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+  service:
+    type: ClusterIP
+    port: 3000
+  route:
+    enabled: true
+    host: ""  # Auto-generated
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  config:
+    nextPublicApiUrl: ""  # Auto-generated
+    nextAuthUrl: ""  # Auto-generated
+    nextPublicBaseUrl: ""  # Auto-generated
+  git:
+    repo: "https://github.com/griot-and-grits/gng-web.git"
+    branch: "main"
+
+# MongoDB Configuration
+mongodb:
+  enabled: true
+  image:
+    repository: "image-registry.openshift-image-registry.svc:5000/openshift/mongodb"
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "100m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  service:
+    type: ClusterIP
+    port: 27017
+  persistence:
+    enabled: true  # ENABLE for production!
+    storageClass: "gp3"  # CHANGE to your storage class
+    size: 50Gi  # Adjust based on your needs
+  auth:
+    rootUsername: "admin"
+    rootPassword: "CHANGE_ME_SECURE_PASSWORD"  # CHANGE THIS!
+    database: "gngdb"
+
+# MinIO Configuration
+minio:
+  enabled: true
+  image:
+    repository: quay.io/minio/minio
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  service:
+    type: ClusterIP
+    apiPort: 9000
+    consolePort: 9001
+  route:
+    enabled: true
+    host: ""  # Auto-generated
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  persistence:
+    enabled: true  # ENABLE for production!
+    storageClass: "gp3"  # CHANGE to your storage class
+    size: 100Gi  # Adjust based on your needs
+  auth:
+    rootUser: "CHANGE_ME"  # CHANGE THIS!
+    rootPassword: "CHANGE_ME_SECURE_PASSWORD"  # CHANGE THIS!
+
+# Whisper ASR (Optional - Enable for transcription)
+whisper:
+  enabled: true  # Enable for transcription features
+  image:
+    repository: onerahmet/openai-whisper-asr-webservice
+    tag: latest
+  replicas: 1
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1"
+    limits:
+      memory: "8Gi"
+      cpu: "4"
+  service:
+    type: ClusterIP
+    port: 9000
+  route:
+    enabled: false  # Usually not needed, accessed via backend
+    host: ""
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+  config:
+    model: "large-v3"  # Use larger model for better accuracy in production
+    engine: "openai_whisper"
+  persistence:
+    enabled: true  # Enable to cache models
+    storageClass: "gp3"  # CHANGE to your storage class
+    size: 10Gi

@@ -1,0 +1,19 @@
+{{- if and .Values.whisper.enabled .Values.whisper.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: whisper-asr
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: whisper
+spec:
+  host: {{ .Values.whisper.route.host }}
+  to:
+    kind: Service
+    name: whisper-asr
+  port:
+    targetPort: http
+  tls:
+    termination: {{ .Values.whisper.route.tls.termination }}
+    insecureEdgeTerminationPolicy: {{ .Values.whisper.route.tls.insecureEdgeTerminationPolicy }}
+{{- end }}

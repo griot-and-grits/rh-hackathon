@@ -224,11 +224,11 @@ make sync
 make oc-logs-backend
 make oc-logs-frontend
 
-# Shell into pod
-oc rsh deployment/mongodb -n gng-<username>
+# Shell into pod (for debugging, running mongosh queries, checking logs)
+oc rsh -n gng-<username> deployment/mongodb
 
-# Copy files
-oc cp file.txt deployment/mongodb:/tmp/ -n gng-<username>
+# Copy files to/from pod
+oc cp -n gng-<username> file.txt deployment/mongodb:/tmp/
 
 # Clean up old jobs
 make cleanup-jobs

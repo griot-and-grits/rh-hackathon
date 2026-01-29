@@ -90,8 +90,8 @@ oc get pods -n gng-<username>
 # View logs
 oc logs -f deployment/mongodb -n gng-<username>
 
-# Connect interactively
-oc rsh deployment/mongodb -n gng-<username>
+# Connect interactively (shell into pod to run mongosh, inspect data, debug)
+oc rsh -n gng-<username> deployment/mongodb
 # Then: mongosh -u admin -p gngdevpass12 --authenticationDatabase admin
 ```
 

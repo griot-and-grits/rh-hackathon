@@ -103,6 +103,15 @@ rh-hackathon/
 
 5. **Per-user isolation**: Each participant gets personal namespace `gng-<username>` with RBAC isolation
 
+## Git Workflow
+
+This is an active hackathon project:
+
+- **Never push without explicit request** - always wait for user to ask
+- **Never push to main** - main is protected; all changes go through PRs
+- **Use feature branches** - create a branch when starting work (wait for user direction on branch name/timing)
+- **Commits are fine** - commit freely to track progress on branches
+
 ## Working with This Repository
 
 When modifying infrastructure:

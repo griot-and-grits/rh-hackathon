@@ -103,6 +103,15 @@ rh-hackathon/
 
 5. **Per-user isolation**: Each participant gets personal namespace `gng-<username>` with RBAC isolation
 
+## Known Issues / Pending Fixes
+
+**MongoDB Service missing (PR #28)**: The `main` branch is missing a Service definition in `infra/mongodb/openshift/mongodb.yaml`. This causes `oc port-forward service/mongodb` to fail. If redeploying MongoDB, either:
+- Wait for PR #28 to merge, or
+- Cherry-pick from `fix/mongodb-service-missing` branch, or
+- Manually apply: `oc apply -f` from that branch
+
+Current OpenShift deployment (`gng-user50`) already has the fix applied directly.
+
 ## Git Workflow
 
 This is an active hackathon project:

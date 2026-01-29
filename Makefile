@@ -18,8 +18,8 @@ USERNAME ?=
 WITH_CODE ?= false
 MODEL ?= base
 
-# Auto-detect namespace from .openshift-config if not provided
-NAMESPACE ?= $(shell if [ -f .openshift-config ]; then grep '^NAMESPACE=' .openshift-config | cut -d= -f2; fi)
+# Auto-detect namespace from .openshift-config or current oc project if not provided
+NAMESPACE ?= $(shell if [ -f .openshift-config ]; then grep '^NAMESPACE=' .openshift-config | cut -d= -f2; elif command -v oc &> /dev/null && oc whoami &> /dev/null; then oc project -q 2>/dev/null; fi)
 
 ##@ General
 

@@ -109,7 +109,12 @@ fi
 
 # Update model in configmap
 print_status "Configuring model: $MODEL"
-sed -i "s/model: \".*\"/model: \"$MODEL\"/" "$MANIFESTS_DIR/configmap.yaml"
+# macOS and Linux compatible sed
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/model: \".*\"/model: \"$MODEL\"/" "$MANIFESTS_DIR/configmap.yaml"
+else
+    sed -i "s/model: \".*\"/model: \"$MODEL\"/" "$MANIFESTS_DIR/configmap.yaml"
+fi
 
 # Adjust PVC size based on model
 case $MODEL in
@@ -129,7 +134,12 @@ case $MODEL in
         PVC_SIZE="5Gi"
         ;;
 esac
-sed -i "s/storage: .*/storage: $PVC_SIZE/" "$MANIFESTS_DIR/pvc.yaml"
+# macOS and Linux compatible sed
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/storage: .*/storage: $PVC_SIZE/" "$MANIFESTS_DIR/pvc.yaml"
+else
+    sed -i "s/storage: .*/storage: $PVC_SIZE/" "$MANIFESTS_DIR/pvc.yaml"
+fi
 
 # Deploy using kustomize
 print_status "Deploying Whisper ASR..."

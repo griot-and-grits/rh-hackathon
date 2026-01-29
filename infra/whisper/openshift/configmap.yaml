@@ -14,8 +14,8 @@ data:
   # - small:   ~2GB RAM, good balance
   # - medium:  ~5GB RAM, better accuracy
   # - large-v3: ~10GB RAM, best accuracy (recommended for production)
-  model: "base"
+  model: "distil-large-v3"
 
-  # Engine options: openai_whisper or faster_whisper
-  # faster_whisper is faster and uses less memory
-  engine: "faster_whisper"
+  # Engine options: openai_whisper, faster_whisper, or whisperx
+  # whisperx adds speaker diarization and word-level timestamps
+  engine: "whisperx"

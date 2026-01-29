@@ -218,3 +218,4 @@ __marimo__/
 # Cloned application repositories
 gng-backend/
 gng-web/
+backlog/*

@@ -1,6 +1,6 @@
 # Admin Setup Guide
 
-Cluster admin prep for the Griot & Grits hackathon.
+> Cluster administrator preparation guide for hosting the Griot & Grits hackathon.
 
 ## Pre-Hackathon Setup
 
@@ -150,3 +150,7 @@ make info
 # Cleanup test
 oc delete namespace gng-user1
 ```
+
+---
+
+← [Back to Documentation Index](../README.md)

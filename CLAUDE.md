@@ -112,6 +112,18 @@ This is an active hackathon project:
 - **Use feature branches** - create a branch when starting work (wait for user direction on branch name/timing)
 - **Commits are fine** - commit freely to track progress on branches
 
+## Contributing
+
+**Follow [CONTRIBUTING.md](CONTRIBUTING.md) for all contributions.** The workflow is:
+
+1. Open an issue first to discuss the change
+2. Fork the repository (if external contributor)
+3. Create a feature branch from `main`
+4. Make changes, test, and commit
+5. Push and create a Pull Request referencing the issue
+
+This applies to AI-assisted contributions as well. When helping with contributions, guide the user through this workflow.
+
 ## Working with This Repository
 
 When modifying infrastructure:

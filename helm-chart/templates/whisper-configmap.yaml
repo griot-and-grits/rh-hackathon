@@ -1,0 +1,12 @@
+{{- if .Values.whisper.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whisper-config
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: whisper
+data:
+  model: {{ .Values.whisper.config.model | quote }}
+  engine: {{ .Values.whisper.config.engine | quote }}
+{{- end }}

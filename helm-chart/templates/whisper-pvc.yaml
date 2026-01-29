@@ -1,0 +1,18 @@
+{{- if and .Values.whisper.enabled .Values.whisper.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisper-model-cache-pvc
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: whisper
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.whisper.persistence.size }}
+  {{- if .Values.whisper.persistence.storageClass }}
+  storageClassName: {{ .Values.whisper.persistence.storageClass }}
+  {{- end }}
+{{- end }}

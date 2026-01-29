@@ -1,0 +1,19 @@
+{{- if and .Values.minio.enabled .Values.minio.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: minio-console
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
+spec:
+  host: {{ .Values.minio.route.host }}
+  to:
+    kind: Service
+    name: minio
+  port:
+    targetPort: console
+  tls:
+    termination: {{ .Values.minio.route.tls.termination }}
+    insecureEdgeTerminationPolicy: {{ .Values.minio.route.tls.insecureEdgeTerminationPolicy }}
+{{- end }}

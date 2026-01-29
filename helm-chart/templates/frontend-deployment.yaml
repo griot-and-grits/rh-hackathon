@@ -1,0 +1,50 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "griot-and-grits.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "griot-and-grits.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: {{ printf "%s/%s:%s" .Values.global.imageRegistry .Values.frontend.image.repository .Values.frontend.image.tag }}
+        workingDir: /tmp
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          git clone -b {{ .Values.frontend.git.branch }} {{ .Values.frontend.git.repo }} /tmp/app
+          cd /tmp/app
+
+          npm install
+
+          # Disable turbopack for faster compilation in containers
+          sed -i 's/"dev": "next dev --turbopack"/"dev": "next dev"/g' package.json
+
+          npm run dev -- --hostname 0.0.0.0
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: {{ include "griot-and-grits.frontend.apiUrl" . | quote }}
+        - name: NEXTAUTH_URL
+          value: {{ include "griot-and-grits.frontend.authUrl" . | quote }}
+        - name: NEXT_PUBLIC_BASE_URL
+          value: {{ include "griot-and-grits.frontend.baseUrl" . | quote }}
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 10 }}
+{{- end }}

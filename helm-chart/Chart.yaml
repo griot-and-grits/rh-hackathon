@@ -1,0 +1,18 @@
+apiVersion: v2
+name: griot-and-grits
+description: A Helm chart for Griot & Grits - AI-powered preservation of minority history
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - griot
+  - grits
+  - ai
+  - history
+  - preservation
+maintainers:
+  - name: Griot & Grits Team
+home: https://github.com/griot-and-grits
+sources:
+  - https://github.com/griot-and-grits/gng-backend
+  - https://github.com/griot-and-grits/gng-web

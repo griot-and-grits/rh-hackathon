@@ -1,0 +1,44 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "griot-and-grits.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "griot-and-grits.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+      - name: backend
+        image: {{ printf "%s/%s:%s" .Values.global.imageRegistry .Values.backend.image.repository .Values.backend.image.tag }}
+        workingDir: /tmp
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          git clone -b {{ .Values.backend.git.branch }} {{ .Values.backend.git.repo }} /tmp/app
+          cd /tmp/app
+          pip install --no-cache-dir -r requirements.txt
+          uvicorn app.server:app --host 0.0.0.0 --port 8000 --reload
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "8000"
+        envFrom:
+        - configMapRef:
+            name: backend-config
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+{{- end }}

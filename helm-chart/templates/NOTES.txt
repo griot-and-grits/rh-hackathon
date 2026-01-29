@@ -1,0 +1,52 @@
+1. Get the application URLs by running these commands:
+
+{{- if .Values.backend.enabled }}
+  Backend URL:  https://{{ include "griot-and-grits.backend.host" . }}
+{{- end }}
+
+{{- if .Values.frontend.enabled }}
+  Frontend URL: https://{{ include "griot-and-grits.frontend.host" . }}
+{{- end }}
+
+{{- if and .Values.minio.enabled .Values.minio.route.enabled }}
+  MinIO Console: https://{{ include "griot-and-grits.minio.host" . }}
+{{- end }}
+
+2. Get the application status:
+
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+3. View logs:
+
+  Backend:  kubectl logs -l app.kubernetes.io/component=backend -f
+  Frontend: kubectl logs -l app.kubernetes.io/component=frontend -f
+  MongoDB:  kubectl logs -l app.kubernetes.io/component=mongodb -f
+  MinIO:    kubectl logs -l app.kubernetes.io/component=minio -f
+
+{{- if .Values.whisper.enabled }}
+  Whisper:  kubectl logs -l app.kubernetes.io/component=whisper -f
+{{- end }}
+
+4. Access MinIO Console:
+
+  URL: https://{{ include "griot-and-grits.minio.host" . }}
+  Username: {{ .Values.minio.auth.rootUser }}
+  Password: {{ .Values.minio.auth.rootPassword }}
+
+5. MongoDB Connection:
+
+  Host: mongodb.{{ .Release.Namespace }}.svc.cluster.local
+  Port: 27017
+  Username: {{ .Values.mongodb.auth.rootUsername }}
+  Password: {{ .Values.mongodb.auth.rootPassword }}
+  Database: {{ .Values.mongodb.auth.database }}
+
+{{- if .Values.whisper.enabled }}
+6. Whisper ASR:
+
+  Service: whisper-asr.{{ .Release.Namespace }}.svc.cluster.local:9000
+  Model: {{ .Values.whisper.config.model }}
+  Engine: {{ .Values.whisper.config.engine }}
+{{- end }}
+
+For more information, see the README.md file in the chart directory.

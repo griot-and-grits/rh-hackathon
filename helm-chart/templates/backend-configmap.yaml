@@ -1,0 +1,29 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+data:
+  # MongoDB Configuration
+  DB_URI: {{ .Values.backend.config.dbUri | quote }}
+  DB_NAME: {{ .Values.backend.config.dbName | quote }}
+
+  # MinIO Configuration
+  STORAGE_ENDPOINT: {{ .Values.backend.config.storageEndpoint | quote }}
+  STORAGE_ACCESS_KEY: {{ .Values.backend.config.storageAccessKey | quote }}
+  STORAGE_SECRET_KEY: {{ .Values.backend.config.storageSecretKey | quote }}
+  STORAGE_BUCKET: {{ .Values.backend.config.storageBucket | quote }}
+  STORAGE_USE_SSL: {{ .Values.backend.config.storageUseSsl | quote }}
+
+  # Processing Pipeline Configuration
+  PROCESSING_MODE: {{ .Values.backend.config.processingMode | quote }}
+  PROCESSING_ENABLE_METADATA_EXTRACTION: {{ .Values.backend.config.processingEnableMetadataExtraction | quote }}
+  PROCESSING_ENABLE_TRANSCRIPTION: {{ .Values.backend.config.processingEnableTranscription | quote }}
+
+  # API Configuration
+  CORS_ORIGINS: {{ .Values.backend.config.corsOrigins | quote }}
+  LOG_LEVEL: {{ .Values.backend.config.logLevel | quote }}
+{{- end }}

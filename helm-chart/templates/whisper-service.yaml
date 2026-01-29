@@ -1,0 +1,19 @@
+{{- if .Values.whisper.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper-asr
+  labels:
+    {{- include "griot-and-grits.labels" . | nindent 4 }}
+    app.kubernetes.io/component: whisper
+spec:
+  type: {{ .Values.whisper.service.type }}
+  ports:
+    - port: {{ .Values.whisper.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "griot-and-grits.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: whisper
+{{- end }}

@@ -16,6 +16,8 @@ spec:
     metadata:
       labels:
         app: whisper-asr
+        app.kubernetes.io/part-of: griot-and-grits
+        app.kubernetes.io/managed-by: kustomize
     spec:
       containers:
         - name: whisper-asr

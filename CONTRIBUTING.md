@@ -95,16 +95,28 @@ make oc-status
 
 Write clear commit messages in imperative mood:
 
+```
+<type>: <subject line - what changed>
+
+<body - why it changed, context>
+
+<footer - issue references>
+```
+
+Example:
+
 ```bash
-# Good
 git commit -m "fix: Increase MongoDB connection timeout to 30s
 
 The default 10s timeout was insufficient for slow cluster starts.
-Fixes #42"
 
-# Bad
-git commit -m "fixed stuff"
+Fixes #42"
 ```
+
+**Commit message structure:**
+- **Subject line**: Short summary with conventional prefix (50 chars or less)
+- **Body**: Explanation of why the change was made (wrap at 72 chars)
+- **Footer**: Issue references go here, on their own line (`Fixes #42`, `Closes #42`, or `Refs #42`)
 
 Use conventional commit prefixes:
 - `fix:` - Bug fixes

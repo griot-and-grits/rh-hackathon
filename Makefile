@@ -1,7 +1,7 @@
 # Griot & Grits - Hackathon Toolkit
 # Makefile for simplified deployment commands
 
-.PHONY: help setup-local setup-openshift deploy-services deploy-code sync watch clean status
+.PHONY: help setup-local setup-openshift deploy-services deploy-code sync watch clean status test-e2e test-backend test-all test-services-up test-services-down
 
 # Default target
 .DEFAULT_GOAL := help
@@ -439,6 +439,41 @@ oc-logs-minio: check-oc ## View MinIO logs (auto-detects namespace or use NAMESP
 		exit 1; \
 	fi
 	@oc logs -f deployment/minio -n $(NAMESPACE)
+
+##@ Testing
+
+# Auto-detect container runtime for compose
+COMPOSE_CMD := $(shell if command -v docker > /dev/null 2>&1; then echo "docker compose"; elif command -v podman-compose > /dev/null 2>&1; then echo "podman-compose"; else echo "docker compose"; fi)
+
+test-services-up: ## Start test environment (Docker Compose)
+	@echo "$(CYAN)Starting test services...$(NC)"
+	@$(COMPOSE_CMD) -f docker-compose.test.yml up -d --build --wait
+	@echo "$(GREEN)Test services ready:$(NC)"
+	@echo "  Backend:  $(CYAN)http://localhost:8000$(NC)"
+	@echo "  Frontend: $(CYAN)http://localhost:3000$(NC)"
+
+test-services-down: ## Stop test environment and remove volumes
+	@echo "$(CYAN)Stopping test services...$(NC)"
+	@$(COMPOSE_CMD) -f docker-compose.test.yml down -v
+	@echo "$(GREEN)Test services stopped$(NC)"
+
+test-backend: ## Run backend API tests (pytest)
+	@echo "$(CYAN)Running backend tests...$(NC)"
+	@cd $(HOME)/gng-backend && python -m pytest tests/ -v
+	@echo "$(GREEN)Backend tests complete$(NC)"
+
+test-e2e: ## Run E2E tests (starts services if not running)
+	@echo "$(CYAN)Running E2E tests...$(NC)"
+	@cd $(HOME)/gng-web && npx playwright test
+	@echo "$(GREEN)E2E tests complete$(NC)"
+
+test-all: ## Run all tests (backend + E2E with Docker Compose)
+	@echo "$(CYAN)$(BOLD)Running full test suite...$(NC)"
+	@make test-services-up
+	@make test-backend || (make test-services-down && exit 1)
+	@cd $(HOME)/gng-web && CI=true BACKEND_URL=http://localhost:8000 npx playwright test || (make test-services-down && exit 1)
+	@make test-services-down
+	@echo "$(GREEN)$(BOLD)All tests passed$(NC)"
 
 ##@ Examples
 

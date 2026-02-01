@@ -67,6 +67,13 @@ make oc-logs-minio
 make clean-openshift      # Delete namespace + local config files
 make cleanup-jobs         # Remove completed OpenShift jobs
 
+# Testing
+make test-all             # Full test suite (Docker Compose + backend + E2E)
+make test-services-up     # Start test environment (MongoDB, MinIO, backend, frontend)
+make test-services-down   # Stop test environment
+make test-backend         # Run backend pytest tests
+make test-e2e             # Run Playwright E2E tests
+
 # Optional
 make deploy-whisper MODEL=base   # Deploy Whisper ASR (tiny/base/small/medium/large-v3)
 ```
@@ -79,6 +86,8 @@ Most OpenShift commands auto-detect the namespace from `.openshift-config`. Over
 - `infra/` — Kubernetes/OpenShift YAML manifests organized by service (`mongodb/`, `minio/`, `backend/`, `frontend/`, `whisper/`)
 - `env-templates/` — Template `.env` files for backend and frontend configuration
 - `docs/ADMIN_SETUP.md` — Admin-only cluster preparation (namespace creation, image pre-import)
+- `docs/TESTING.md` — Testing strategy, running tests, CI pipeline
+- `docker-compose.test.yml` — Docker Compose for test environment (MongoDB, MinIO, backend, frontend)
 - `INFRA.md` — Detailed infrastructure and deployment reference
 
 ## Key Configuration Files (gitignored)

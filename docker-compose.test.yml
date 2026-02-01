@@ -1,0 +1,99 @@
+# Docker Compose for E2E testing
+# Spins up MongoDB, MinIO, backend, and frontend for integration/E2E tests.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d --build --wait
+#   docker compose -f docker-compose.test.yml down -v
+#
+# MongoDB and MinIO are only accessible within the Docker network.
+# Backend (:8000) and frontend (:3000) are exposed to the host.
+
+services:
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: gngdevpass12
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/artifacts &&
+        echo 'Bucket ready'
+      "
+
+  backend:
+    build:
+      context: ${BACKEND_PATH:-./gng-backend}
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      DB_URI: mongodb://admin:gngdevpass12@mongodb:27017/
+      DB_NAME: gngdb_test
+      STORAGE_ENDPOINT: minio:9000
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: minioadmin
+      STORAGE_BUCKET: artifacts
+      STORAGE_SECURE: "false"
+      PROCESSING_ENABLE_TRANSCRIPTION: "false"
+      PROCESSING_ENABLE_METADATA_EXTRACTION: "false"
+      GLOBUS_ENABLED: "false"
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:3001,http://frontend:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ${FRONTEND_PATH:-./gng-web}
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_ADMIN_API_BASE_URL: http://localhost:${BACKEND_PORT:-8000}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      ADMIN_AUTH_DISABLED: "true"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://0.0.0.0:3000"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 15s

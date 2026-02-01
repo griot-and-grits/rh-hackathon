@@ -101,9 +101,12 @@ Required: `description`, `feedback_type`. All other fields are optional.
 ### Admin Dashboard
 
 1. Navigate to `/admin/feedback` or click "Review Feedback" on the dashboard.
-2. Filter by status and/or feedback type using the dropdown filters.
-3. Click a row to expand and see full details (description, context, submitter info).
-4. Change status via the inline dropdown in the Actions column.
+2. View status distribution at a glance via the summary stat cards (New, Reviewed, Resolved, Dismissed). Click a card to filter by that status.
+3. Search feedback by description, reporter name/email, or artifact title using the search bar. Filter by type using the type dropdown.
+4. If a feedback item is linked to an artifact, click the link icon next to the description to go directly to that artifact.
+5. Click "View" on a row to open the detail dialog with full context (description, Griot response, reporter info, related artifact).
+6. In the detail dialog, update the status, add admin notes, and save changes.
+7. Navigate large result sets using the pagination controls (25 items per page).
 
 ## MongoDB
 

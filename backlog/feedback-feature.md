@@ -33,7 +33,7 @@ Full-stack user feedback mechanism allowing public users to report issues on Gri
 - [x] `lib/admin/status.ts` — Modified: added FEEDBACK_STATUS_STYLES, FEEDBACK_TYPE_STYLES, getFeedbackStatusStyle, getFeedbackTypeStyle
 - [x] `components/admin/shared/feedback-status-badge.tsx` — Created: status badge component
 - [x] `components/admin/shared/feedback-type-badge.tsx` — Created: type badge component
-- [x] `components/admin/feedback/feedback-table.tsx` — Created: admin feedback table with filters, expandable rows, inline status update
+- [x] `components/admin/feedback/feedback-table.tsx` — Created: admin feedback table with stat cards, search, type/status filters, artifact links, detail dialog with admin notes editing, and pagination
 - [x] `app/admin/feedback/page.tsx` — Created: admin page route
 - [x] `components/admin/shell/admin-shell.tsx` — Modified: added Feedback nav item with Flag icon
 - [x] `app/admin/page.tsx` — Modified: added "Review Feedback" quick action card
@@ -51,6 +51,6 @@ Full-stack user feedback mechanism allowing public users to report issues on Gri
 
 3. **Single modal instance pattern**: One `<FeedbackModal>` instance in Collections with dynamic context via state, rather than one per chat message or video card.
 
-4. **Inline status updates**: Admin feedback table uses an inline `<select>` dropdown for status changes, triggering a PATCH mutation immediately on change, rather than requiring a separate edit page.
+4. **Detail dialog for actions**: Admin feedback table uses a "View" button to open a detail dialog where admins can review full context, edit admin notes, and change status via a "Save Changes" action, rather than inline status dropdowns.
 
 5. **FeedbackService always available**: Unlike CollectionService (conditional on Globus), FeedbackService is always initialized since it only depends on MongoDB.

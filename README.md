@@ -303,6 +303,27 @@ Key variables:
 
 See `env-templates/` for full examples.
 
+## Testing
+
+Run the full test suite (backend API tests + Playwright E2E) with a single command:
+
+```bash
+make test-all        # Starts Docker services, runs all tests, stops services
+```
+
+Individual test commands:
+
+```bash
+make test-services-up    # Start test environment (MongoDB, MinIO, backend, frontend)
+make test-backend        # Run backend pytest suite
+make test-e2e            # Run Playwright E2E tests
+make test-services-down  # Stop test environment
+```
+
+See [docs/TESTING.md](docs/TESTING.md) for detailed documentation.
+
+---
+
 ## Advanced
 
 ### Deploy Whisper ASR (Optional)

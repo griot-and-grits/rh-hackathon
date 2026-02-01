@@ -218,3 +218,9 @@ __marimo__/
 # Cloned application repositories
 gng-backend/
 gng-web/
+
+# Claude Code
+.claude/
+
+# Playwright MCP
+.playwright-mcp/

@@ -132,12 +132,12 @@ else
 fi
 
 # Check Python
-if command -v python3 &> /dev/null; then
-    PYTHON_VERSION=$(python3 --version)
+if command -v python &> /dev/null; then
+    PYTHON_VERSION=$(python --version)
     print_success "Python: $PYTHON_VERSION"
 else
-    print_error "Python3: not found"
-    MISSING_DEPS+=("python3")
+    print_error "Python: not found"
+    MISSING_DEPS+=("python")
 fi
 
 # Check uv (preferred) or pip
